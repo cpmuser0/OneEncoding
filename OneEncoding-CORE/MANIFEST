@@ -1,0 +1,13 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/01-open.t
+t/02-stat.t
+t/03-unlink.t
+t/04-rename.t
+t/05-system.t
+t/06-glob.t
+lib/OneEncoding/CORE.pm
+examples/jperl.bat
+examples/say.pl
