@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Encode;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 our $encoding;
 our $decoding_argv_done;
 our $override_done;
