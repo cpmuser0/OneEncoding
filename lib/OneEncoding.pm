@@ -5,10 +5,9 @@ use strict;
 use warnings;
 use Filter::Util::Call;
 
-our $VERSION	= '0.02';
-our $LINENUM	= 0;
-our $ENCODING	= 1;
-our $USING_MAIN_FILTER = 1;
+our $VERSION    = '0.02';
+our $LINENO     = 0;
+our $ENCODING   = 1;
 
 sub import
 {
@@ -25,16 +24,16 @@ sub filter
     my $status = filter_read();
     if ( $status > 0 )
     {
-        s/ -e \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($1); -e _ }->()/gx;	# '
+        s/ -e \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($1); -e _ }->()/gx;  # '
     }
 
-    if ( ++$self->[$LINENUM] == 1 )
+    if ( ++$self->[$LINENO] == 1 )
     {
-    	my $encoding = $self->[$ENCODING];
-    	my $lines_to_add;
-	    if ( $] =~ /^5.016/ )
-	    {
-			$lines_to_add = <<ADD;
+        my $encoding = $self->[$ENCODING];
+        my $lines_to_add;
+        if ( $] =~ /^5.016/ )
+        {
+            $lines_to_add = <<ADD;
 use encoding '$encoding';
 use open ':std';
 use open ':encoding($encoding)';
@@ -43,7 +42,7 @@ ADD
         }
         else
         {
-			$lines_to_add = <<ADD;
+            $lines_to_add = <<ADD;
 use encoding '$encoding';
 use open ':encoding($encoding)';
 use open ':std';
