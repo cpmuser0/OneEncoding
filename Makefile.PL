@@ -11,21 +11,8 @@ WriteMakefile(
        AUTHOR         => 'A. U. Thor <a.u.thor@a.galaxy.far.far.away>') : ()),
 );
 
-my $encoding;
-
-INPUT:
-{
-	print "Let me know the encoding to be used in tests? ( cp932, euc-jp, etc. ) > ";
-	$encoding = <STDIN>;
-	chomp $encoding;
-
-	unless ( my $e = find_encoding( $encoding ) )
-	{
-		print "'$encoding' is unkown.\n";
-		undef $encoding;
-		redo INPUT;
-	}
-}
+my $encoding = 'cp932';
+$encoding = shift @ARGV if @ARGV;
 
 my $setting = "t/TestSetting.pm";
 
@@ -46,4 +33,5 @@ TEST_SETTING
 
 close $script;
 print "Done\n";
+print "If you wish to change default encoding, retry with\nperl Makefile.PL ANOTHER_ENCODING\n";
 print "Now you can make test\n";

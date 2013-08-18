@@ -1,34 +1,67 @@
-package OneEncoding::Filter;
+package OneEncoding;
 
 use 5.010001;
 use strict;
 use warnings;
 use Filter::Util::Call;
 
-our $VERSION = '0.01';
+our $VERSION	= '0.02';
+our $LINENUM	= 0;
+our $ENCODING	= 1;
+our $USING_MAIN_FILTER = 1;
 
 sub import
 {
-    filter_add( bless [] );
+    my $class = shift;
+    my $encoding = shift;
+    $encoding or die "Usage: use OneEncodingE 'ENCODING';";
+    filter_add( bless [ 0, $encoding ] );
 }
 
 sub filter
 {
+    my $self = $_[0];
+
     my $status = filter_read();
     if ( $status > 0 )
     {
-        s/ -e \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($1); -e _ }->()/gx
+        s/ -e \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($1); -e _ }->()/gx;	# '
     }
+
+    if ( ++$self->[$LINENUM] == 1 )
+    {
+    	my $encoding = $self->[$ENCODING];
+    	my $lines_to_add;
+	    if ( $] =~ /^5.016/ )
+	    {
+			$lines_to_add = <<ADD;
+use encoding '$encoding';
+use open ':std';
+use open ':encoding($encoding)';
+use OneEncoding::CORE '$encoding';
+ADD
+        }
+        else
+        {
+			$lines_to_add = <<ADD;
+use encoding '$encoding';
+use open ':encoding($encoding)';
+use open ':std';
+use OneEncoding::CORE '$encoding';
+ADD
+        }
+        s/^/$lines_to_add/;
+    }
+
     $status;
 }
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-OneEncoding::Filter - Perl extension for blah blah blah
+OneEncoding - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
