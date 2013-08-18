@@ -6,37 +6,15 @@ use warnings;
 use Encode;
 
 our $VERSION = '0.02';
-our $encoding;
-our $decoding_argv_done;
-our $override_done;
+my $encoding;
+my $decoding_argv_done;
+my $override_done;
 
 sub import
 {
     my $class = shift;
     $encoding = shift;
     $encoding or die "Usage: use OneEncoding::CORE 'ENCODING';";
-
-    my $caller = caller(0);
-
-    if ( $] =~ /^5.016/ )
-    {
-    eval <<PRAGMAS;
-package $caller;
-use encoding '$encoding';
-use open ':std';
-use open ':encoding($encoding)';
-PRAGMAS
-    }
-    else
-    {
-    eval <<PRAGMAS;
-package $caller;
-use encoding '$encoding';
-use open ':encoding($encoding)';
-use open ':std';
-PRAGMAS
-    }
-
     $decoding_argv_done ||= decode_argv();
     $override_done ||= override_by_encoding_funcs();
 }

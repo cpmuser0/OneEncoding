@@ -3,7 +3,7 @@ use warnings;
 use Test::More tests => 2;
 BEGIN {
     use t::TestSetting;
-    use_ok( 'OneEncoding::CORE', $ENCODING );
+    use_ok( 'OneEncoding', $ENCODING );
 }
 
 my $file = 't/temp.txt';

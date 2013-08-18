@@ -4,7 +4,7 @@ use warnings;
 use Test::More tests => 3;
 BEGIN {
     use t::TestSetting;
-    use_ok( 'OneEncoding::CORE', $ENCODING );
+    use_ok( 'OneEncoding', $ENCODING );
 }
 
 my $file = 't/data/•\Ž¦”\—Í.csv';
