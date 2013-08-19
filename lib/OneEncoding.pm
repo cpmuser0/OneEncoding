@@ -24,7 +24,7 @@ sub filter
     my $status = filter_read();
     if ( $status > 0 )
     {
-        s/ -e \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($1); -e _ }->()/gx;  # '
+        s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
     }
 
     if ( ++$self->[$LINENO] == 1 )
