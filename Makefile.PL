@@ -16,7 +16,7 @@ $encoding = shift @ARGV if @ARGV;
 
 my $setting = "t/TestSetting.pm";
 
-print "Creating $setting with '$encoding'\n";
+print "Creating $setting with '$encoding' encoding\n";
 open $script, "> $setting" or die;
 
 print $script <<TEST_SETTING;
@@ -33,5 +33,10 @@ TEST_SETTING
 
 close $script;
 print "Done\n";
-print "If you wish to change default encoding, retry with\nperl Makefile.PL ANOTHER_ENCODING\n";
+print <<RETRY_MSG;
+
+If you wish to change default encoding, retry from the command
+> perl Makefile.PL ANOTHER_ENCODING
+
+RETRY_MSG
 print "Now you can make test\n";

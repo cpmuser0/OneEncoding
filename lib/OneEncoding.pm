@@ -5,15 +5,22 @@ use strict;
 use warnings;
 use Filter::Util::Call;
 
-our $VERSION    = '0.02';
-our $LINENO     = 0;
-our $ENCODING   = 1;
+our $VERSION    = '0.03';
+
+my $LINENO         = 0;
+my $ENCODING       = 1;
 
 sub import
 {
     my $class = shift;
     my $encoding = shift;
     $encoding or die "Usage: use OneEncodingE 'ENCODING';";
+    my $caller = caller;
+
+    my $header_sub = $caller eq "main" ? \&header_eval_main : \&header_eval_other ;
+
+    $header_sub->( $caller, $encoding );
+
     filter_add( bless [ 0, $encoding ] );
 }
 
@@ -22,37 +29,54 @@ sub filter
     my $self = $_[0];
 
     my $status = filter_read();
+
     if ( $status > 0 )
     {
+        # convert -e $file to sub{ stat $file; -e _ }->()
         s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
     }
 
-    if ( ++$self->[$LINENO] == 1 )
-    {
-        my $encoding = $self->[$ENCODING];
-        my $lines_to_add;
-        if ( $] =~ /^5.016/ )
-        {
-            $lines_to_add = <<ADD;
-use encoding '$encoding';
-use open ':std';
-use open ':encoding($encoding)';
-use OneEncoding::CORE '$encoding';
-ADD
-        }
-        else
-        {
-            $lines_to_add = <<ADD;
-use encoding '$encoding';
-use open ':encoding($encoding)';
-use open ':std';
-use OneEncoding::CORE '$encoding';
-ADD
-        }
-        s/^/$lines_to_add/;
-    }
-
     $status;
+}
+
+sub header_eval_main
+{
+    my $caller = shift;
+    my $encoding = shift;
+
+    if ( $] =~ /^5.016/ )
+    {
+        eval <<EVAL;
+package $caller;
+use encoding '$encoding';
+use open ':std';
+use open ':encoding($encoding)';
+use OneEncoding::CORE '$encoding';
+EVAL
+    }
+    else
+    {
+        eval <<EVAL;
+package $caller;
+use encoding '$encoding';
+use open ':encoding($encoding)';
+use open ':std';
+use OneEncoding::CORE '$encoding';
+EVAL
+    }
+}
+
+sub header_eval_other
+{
+    my $caller = shift;
+    my $encoding = shift;
+
+    eval <<EVAL;
+package $caller;
+use encoding '$encoding';
+use OneEncoding::CORE '$encoding';
+EVAL
+
 }
 
 1;
@@ -60,49 +84,33 @@ __END__
 
 =head1 NAME
 
-OneEncoding - Perl extension for blah blah blah
+OneEncoding - to make life easier in one-encoding environment
 
 =head1 SYNOPSIS
 
-  use OneEncoding::Filter;
-  blah blah blah
+  use OneEncoding 'cp932';
 
 =head1 DESCRIPTION
 
-Stub documentation for OneEncoding::CORE, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
 
-Blah blah blah.
 
 =head2 EXPORT
 
 None by default.
 
-
-
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
 
 =head1 AUTHOR
 
-A. U. Thor, E<lt>a.u.thor@a.galaxy.far.far.awayE<gt>
+Masatsuyo Takahashi, E<lt>cpmuser0@mail1.accsnet.ne.jpE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2013 by A. U. Thor
+Copyright (C) 2013 by Masatsuyo Takahashi
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.16.3 or,
 at your option, any later version of Perl 5 you may have available.
-
 
 =cut
