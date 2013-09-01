@@ -44,26 +44,17 @@ sub header_eval_main
     my $caller = shift;
     my $encoding = shift;
 
-    if ( $] =~ /^5.016/ )
-    {
-        eval <<EVAL;
-package $caller;
-use encoding '$encoding';
-use open ':std';
-use open ':encoding($encoding)';
-use OneEncoding::CORE '$encoding';
-EVAL
-    }
-    else
-    {
-        eval <<EVAL;
+    binmode STDIN,  ":encoding($encoding)";
+    binmode STDOUT, ":encoding($encoding)";
+    binmode STDERR, ":encoding($encoding)";
+
+    eval <<EVAL;
 package $caller;
 use encoding '$encoding';
 use open ':encoding($encoding)';
-use open ':std';
 use OneEncoding::CORE '$encoding';
 EVAL
-    }
+
 }
 
 sub header_eval_other
