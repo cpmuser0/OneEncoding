@@ -9,7 +9,10 @@ t/04-rename.t
 t/05-system.t
 t/06-glob.t
 t/07-stat-filter.t
+t/08-in-module.t
+t/09-env.t
 lib/OneEncoding.pm
 lib/OneEncoding/CORE.pm
+lib/OneEncoding/ENV.pm
 examples/jperl.bat
 examples/say.pl

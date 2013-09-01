@@ -21,22 +21,12 @@ sub import
 
     $header_sub->( $caller, $encoding );
 
-    filter_add( bless [ 0, $encoding ] );
-}
-
-sub filter
-{
-    my $self = $_[0];
-
-    my $status = filter_read();
-
-    if ( $status > 0 )
+    if ( $caller eq "main" )
     {
-        # convert -e $file to sub{ stat $file; -e _ }->()
-        s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
+        tie_env( $encoding );
     }
 
-    $status;
+    filter_add( bless [ 0, $encoding ] );
 }
 
 sub header_eval_main
@@ -68,6 +58,34 @@ use encoding '$encoding';
 use OneEncoding::CORE '$encoding';
 EVAL
 
+}
+
+sub filter
+{
+    my $self = $_[0];
+
+    my $status = filter_read();
+
+    if ( $status > 0 )
+    {
+        # convert -e $file to sub{ stat $file; -e _ }->()
+        s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
+    }
+
+    $status;
+}
+
+sub tie_env
+{
+    my $encoding = shift;
+
+    require OneEncoding::ENV;
+    OneEncoding::ENV->import( $encoding );
+
+    my %env;
+    tie %env, "OneEncoding::ENV";
+
+    *main::ENV = \%env;
 }
 
 1;
