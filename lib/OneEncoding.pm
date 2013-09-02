@@ -34,16 +34,33 @@ sub header_eval_main
     my $caller = shift;
     my $encoding = shift;
 
-    binmode STDIN,  ":encoding($encoding)";
-    binmode STDOUT, ":encoding($encoding)";
-    binmode STDERR, ":encoding($encoding)";
+    if ( $] >= 5.016 )
+    {
+        binmode STDIN,  ":encoding($encoding)";
+        binmode STDOUT, ":encoding($encoding)";
+        binmode STDERR, ":encoding($encoding)";
 
-    eval <<EVAL;
+        eval <<EVAL;
 package $caller;
 use encoding '$encoding';
 use open ':encoding($encoding)';
 use OneEncoding::CORE '$encoding';
 EVAL
+
+    }
+    else
+    {
+        eval <<EVAL;
+package $caller;
+use encoding '$encoding';
+use open ':encoding($encoding)';
+use OneEncoding::CORE '$encoding';
+EVAL
+
+        binmode STDIN,  ":encoding($encoding)";
+        binmode STDOUT, ":encoding($encoding)";
+        binmode STDERR, ":encoding($encoding)";
+    }
 
 }
 
