@@ -1,12 +1,10 @@
 use strict;
 use warnings;
 
-use Test::More tests => 4;
-BEGIN {
-    use t::TestSetting;
-    use_ok( 'OneEncoding', $ENCODING );
-    use_ok( 't::TestUseInModule' );
-}
+use Test::More tests => 2;
+use t::TestSetting;
+use OneEncoding $ENCODING;
+use t::TestUseInModule;
 
 my $file = 't/data/•\Ž¦”\—Í.csv';
 {

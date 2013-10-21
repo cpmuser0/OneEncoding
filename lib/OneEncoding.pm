@@ -3,12 +3,14 @@ package OneEncoding;
 use 5.010001;
 use strict;
 use warnings;
+use Encode;
 use Filter::Util::Call;
 
-our $VERSION    = '0.03';
+our $VERSION    = '0.04';
 
 my $LINENO         = 0;
 my $ENCODING       = 1;
+my $ENC            = 2;
 
 sub import
 {
@@ -17,47 +19,25 @@ sub import
     $encoding or die "Usage: use OneEncodingE 'ENCODING';";
     my $caller = caller;
 
-    my $header_sub = $caller eq "main" ? \&header_eval_main : \&header_eval_other ;
-
-    $header_sub->( $caller, $encoding );
-
     if ( $caller eq "main" )
     {
+	    binmode STDIN,  ":encoding($encoding)";
+	    binmode STDOUT, ":encoding($encoding)";
+	    binmode STDERR, ":encoding($encoding)";
+
         tie_env( $encoding );
     }
 
-    filter_add( bless [ 0, $encoding ] );
-}
-
-sub header_eval_main
-{
-    my $caller = shift;
-    my $encoding = shift;
-
-    binmode STDIN,  ":encoding($encoding)";
-    binmode STDOUT, ":encoding($encoding)";
-    binmode STDERR, ":encoding($encoding)";
-
     eval <<EVAL;
 package $caller;
-use encoding '$encoding';
-use open ':encoding($encoding)';
 use OneEncoding::CORE '$encoding';
 EVAL
 
-}
+	require utf8;		# to fetch $utf8::hint_bits
+	$^H |= $utf8::hint_bits;
 
-sub header_eval_other
-{
-    my $caller = shift;
-    my $encoding = shift;
-
-    eval <<EVAL;
-package $caller;
-use encoding '$encoding';
-use OneEncoding::CORE '$encoding';
-EVAL
-
+    my $enc = find_encoding( $encoding );
+    filter_add( bless [ 0, $encoding, $enc ] );
 }
 
 sub filter
@@ -68,6 +48,7 @@ sub filter
 
     if ( $status > 0 )
     {
+    	$_ = $self->[$ENC]->decode( $_ );
         # convert -e $file to sub{ stat $file; -e _ }->()
         s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
     }
