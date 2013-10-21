@@ -21,20 +21,68 @@ sub import
 
     if ( $caller eq "main" )
     {
-	    binmode STDIN,  ":encoding($encoding)";
-	    binmode STDOUT, ":encoding($encoding)";
-	    binmode STDERR, ":encoding($encoding)";
+        binmode STDIN,  ":encoding($encoding)";
+        binmode STDOUT, ":encoding($encoding)";
+        binmode STDERR, ":encoding($encoding)";
 
         tie_env( $encoding );
     }
 
+<<<<<<< HEAD
     eval <<EVAL;
+=======
+    filter_add( bless [ 0, $encoding ] );
+}
+
+sub header_eval_main
+{
+    my $caller = shift;
+    my $encoding = shift;
+
+    if ( $] >= 5.016 )
+    {
+        binmode STDIN,  ":encoding($encoding)";
+        binmode STDOUT, ":encoding($encoding)";
+        binmode STDERR, ":encoding($encoding)";
+
+        eval <<EVAL;
+package $caller;
+use encoding '$encoding';
+use open ':encoding($encoding)';
+use OneEncoding::CORE '$encoding';
+EVAL
+
+    }
+    else
+    {
+        eval <<EVAL;
+>>>>>>> c72d639473f3292dc48b9361ae459677a636a57c
 package $caller;
 use OneEncoding::CORE '$encoding';
 EVAL
 
-	require utf8;		# to fetch $utf8::hint_bits
-	$^H |= $utf8::hint_bits;
+<<<<<<< HEAD
+    require utf8;       # to fetch $utf8::hint_bits
+    $^H |= $utf8::hint_bits;
+=======
+        binmode STDIN,  ":encoding($encoding)";
+        binmode STDOUT, ":encoding($encoding)";
+        binmode STDERR, ":encoding($encoding)";
+    }
+
+}
+
+sub header_eval_other
+{
+    my $caller = shift;
+    my $encoding = shift;
+
+    eval <<EVAL;
+package $caller;
+use encoding '$encoding';
+use OneEncoding::CORE '$encoding';
+EVAL
+>>>>>>> c72d639473f3292dc48b9361ae459677a636a57c
 
     my $enc = find_encoding( $encoding );
     filter_add( bless [ 0, $encoding, $enc ] );
@@ -48,7 +96,7 @@ sub filter
 
     if ( $status > 0 )
     {
-    	$_ = $self->[$ENC]->decode( $_ );
+        $_ = $self->[$ENC]->decode( $_ );
         # convert -e $file to sub{ stat $file; -e _ }->()
         s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
     }
