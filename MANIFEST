@@ -11,6 +11,8 @@ t/06-glob.t
 t/07-stat-filter.t
 t/08-in-module.t
 t/09-env.t
+t/10-sjis_escape.t
+t/11-auto.t
 lib/OneEncoding.pm
 lib/OneEncoding/CORE.pm
 lib/OneEncoding/ENV.pm
