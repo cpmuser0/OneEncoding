@@ -6,18 +6,43 @@ use warnings;
 use Encode;
 use Filter::Util::Call;
 
-our $VERSION    = '0.04';
+our $VERSION    = '0.05';
 
-my $LINENO         = 0;
-my $ENCODING       = 1;
-my $ENC            = 2;
+my $init_encoding;
 
 sub import
 {
     my $class = shift;
     my $encoding = shift;
-    $encoding or die "Usage: use OneEncodingE 'ENCODING';";
+
     my $caller = caller;
+
+    if ( $encoding eq "auto" )
+    {
+        $encoding = $init_encoding // "sjis_escape";
+    }
+
+    $init_encoding //= $encoding;
+
+    require Filter::Simple;
+
+    if ( $encoding eq "sjis_escape" )
+    {
+        my $import_sub  = Filter::Simple::gen_filter_import(
+                $caller,
+                sub
+                {
+                    # X\ => X\\
+                    s/([\x81-\x9f]|[\xe0-\xef]])(\x5c)/$1\\$2/gx;
+
+                    # AB => A\B
+                    s/([\x81-\x9f]|[\xe0-\xef]])([\x40-\x5b][\x5d-\x7f])/$1\\$2/gx;
+                },
+                undef,
+            );
+        $import_sub->( $caller );
+        return;
+    }
 
     if ( $caller eq "main" )
     {
@@ -37,23 +62,19 @@ EVAL
     $^H |= $utf8::hint_bits;
 
     my $enc = find_encoding( $encoding );
-    filter_add( bless [ 0, $encoding, $enc ] );
-}
 
-sub filter
-{
-    my $self = $_[0];
+    my $import_sub  = Filter::Simple::gen_filter_import(
+            $caller,
+            sub
+            {
+                $_ = $enc->decode( $_ );
+                # convert -e $file to sub{ stat $file; -e _ }->()
+                s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
+            },
+            undef,
+        );
 
-    my $status = filter_read();
-
-    if ( $status > 0 )
-    {
-        $_ = $self->[$ENC]->decode( $_ );
-        # convert -e $file to sub{ stat $file; -e _ }->()
-        s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
-    }
-
-    $status;
+    $import_sub->( $caller );
 }
 
 sub tie_env
