@@ -32,10 +32,10 @@ sub import
                 $caller,
                 sub
                 {
-                    # X\ => X\\
+                    # L\ => L\\
                     s/([\x81-\x9f]|[\xe0-\xef]])( \\ )/$1\\$2/gx;
 
-                    # AB => A\B
+                    # LR => L\R
                     s/([\x81-\x9f]|[\xe0-\xef]])([ \@ \[ \] \^ \{ \| \} ])/$1\\$2/gx;
                 },
                 undef,
