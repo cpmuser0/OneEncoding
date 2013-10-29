@@ -6,7 +6,7 @@ use warnings;
 use Encode;
 use Filter::Util::Call;
 
-our $VERSION    = '0.05';
+our $VERSION    = '0.06';
 
 my $init_encoding;
 
@@ -36,7 +36,7 @@ sub import
                     s/([\x81-\x9f]|[\xe0-\xef]])(\x5c)/$1\\$2/gx;
 
                     # AB => A\B
-                    s/([\x81-\x9f]|[\xe0-\xef]])([\x40-\x5b][\x5d-\x7f])/$1\\$2/gx;
+                    s/([\x81-\x9f]|[\xe0-\xef]])([ \@ \[ \] \^ \{ \| \} ])/$1\\$2/gx;
                 },
                 undef,
             );
