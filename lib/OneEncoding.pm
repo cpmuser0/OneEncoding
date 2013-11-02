@@ -6,9 +6,11 @@ use warnings;
 use Encode;
 use Filter::Util::Call;
 
-our $VERSION    = '0.06';
+our $VERSION    = '0.07';
 
 my $init_encoding;
+my $sjis_escape_sub;
+my $one_encoding_sub;
 
 sub import
 {
@@ -17,7 +19,7 @@ sub import
 
     my $caller = caller;
 
-    if ( $encoding eq "auto" )
+    if ( !defined $encoding or $encoding eq "auto" )
     {
         $encoding = $init_encoding // "sjis_escape";
     }
@@ -28,19 +30,23 @@ sub import
 
     if ( $encoding eq "sjis_escape" )
     {
-        my $import_sub  = Filter::Simple::gen_filter_import(
-                $caller,
-                sub
-                {
-                    # L\ => L\\
-                    s/([\x81-\x9f]|[\xe0-\xef]])( \\ )/$1\\$2/gx;
+        $sjis_escape_sub  //= filter_only(
 
-                    # LR => L\R
-                    s/([\x81-\x9f]|[\xe0-\xef]])([ \@ \[ \] \^ \{ \| \} ])/$1\\$2/gx;
+                quotelike => sub
+                {
+                    if ( !/^(<<)?'/ ) # if it does not begin with '
+                    {
+                        # print "DEBUG:$_:\n";
+                        # L\ => L\\
+                        s/([\x81-\x9f]|[\xe0-\xef]])( \\ )/$1\\$2/gx;
+
+                        # LR => L\R
+                        s/([\x81-\x9f]|[\xe0-\xef]])([ \@ \` \[ \] \^ \{ \| \} ])/$1\\$2/gx;
+                    }
                 },
-                undef,
+
             );
-        $import_sub->( $caller );
+        $sjis_escape_sub->( $caller );
         return;
     }
 
@@ -63,18 +69,41 @@ EVAL
 
     my $enc = find_encoding( $encoding );
 
-    my $import_sub  = Filter::Simple::gen_filter_import(
-            $caller,
-            sub
-            {
-                $_ = $enc->decode( $_ );
+    $one_encoding_sub  //= filter_only(
+
+            all  => sub { $_ = $enc->decode( $_ ) },
+
+            executable  => sub {
                 # convert -e $file to sub{ stat $file; -e _ }->()
                 s/ -(\w) \s+ ( \$\w+ | '[^']*' | "[^"]*" ) /sub{ stat($2); -$1 _ }->()/gx;  # '
             },
-            undef,
+
         );
 
-    $import_sub->( $caller );
+    $one_encoding_sub->( $caller );
+}
+
+sub filter_only
+{
+    # This sub is borrowed from Filter::Simple::FILTER_ONLY
+    # removing the args check and the trailing redefines.
+
+    my @transforms;
+    while (@_ > 1) {
+        my ($what, $how) = splice(@_, 0, 2);
+        push @transforms, Filter::Simple::gen_std_filter_for($what,$how);
+    }
+    my $terminator = shift;
+
+    my $multitransform = sub {
+        foreach my $transform ( @transforms ) {
+            $transform->(@_);
+        }
+    };
+
+    # no redefines
+
+    Filter::Simple::gen_filter_import( "_DUMMY_", $multitransform, $terminator );
 }
 
 sub tie_env
@@ -99,11 +128,47 @@ OneEncoding - to make life easier in one-encoding environment
 
 =head1 SYNOPSIS
 
+  use OneEncoding 'sjis_escape';
   use OneEncoding 'cp932';
+  use OneEncoding 'auto';
+  use OneEncoding;
 
 =head1 DESCRIPTION
 
+Note that this text is CP932-encoded.
 
+Suppose you are using Japanese on Windows with default encoding CP932
+and you print a double-quoted Kanji literal such as "”\—Í".
+Then You get a broken literal "”—Í" displayed on console.
+This is a situation called mojibake in Japanese.
+
+OneEncoding module is to avoid mojibake and other charater code related
+troubles.
+
+The troubles are caused by the fact that the second byte of some of the
+CP932 multi-byte characters coinsides with one of special characters in
+Perl syntax, such as \, [, ], {, }, etc.
+
+There are two approaches to avoid such troubles. One is byte-oriented
+approach and the other is character-oriented approach.
+
+Byte-oriented approach avoids mojibake by inserting escape character \
+before each special character to indicate it is not special in that case.
+
+Character-oriented approach avoids troubles by decoding CP932 source
+text into perl-internal unicode. Internal code characters are safe
+against above-memtioned troubles because they are interpreted character-
+wise, not byte-wise.
+
+If you deside to take byte-oriented approach, then use OneEncoding with
+'sjis_escape'. Otherwise, use OneEncoding with 'cp932'.
+
+In the other two usages, namely, use OneEncoding with 'auto' or without
+any parameters, which are supposed to be used in modules, the approach
+follows the first-used parameter of OneEncoding.
+
+When the first-used parameter is 'auto' or the first use is without
+parameter, then the default is 'sjis_escape'.
 
 =head2 EXPORT
 

@@ -13,6 +13,8 @@ t/08-in-module.t
 t/09-env.t
 t/10-sjis_escape.t
 t/11-auto.t
+t/12-quotes.t
+t/13-no-args.t
 lib/OneEncoding.pm
 lib/OneEncoding/CORE.pm
 lib/OneEncoding/ENV.pm
