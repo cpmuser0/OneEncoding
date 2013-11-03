@@ -1,3 +1,3 @@
 @echo off
-perl -MOneEncoding=cp932 %*
+perl -MOneEncoding=sjis_escape %*
 exit /B %ERRORLEVEL%

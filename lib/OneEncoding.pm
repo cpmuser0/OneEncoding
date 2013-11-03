@@ -6,7 +6,7 @@ use warnings;
 use Encode;
 use Filter::Util::Call;
 
-our $VERSION    = '0.07';
+our $VERSION    = '0.03';
 
 my $init_encoding;
 my $sjis_escape_sub;
@@ -145,12 +145,12 @@ This is a situation called mojibake in Japanese.
 OneEncoding module is to avoid mojibake and other charater code related
 troubles.
 
-The troubles are caused by the fact that the second byte of some of the
-CP932 multi-byte characters coinsides with one of special characters in
+The troubles are caused by the fact that the second bytes of some of the
+CP932 multi-byte characters coinside with one of special characters in
 Perl syntax, such as \, [, ], {, }, etc.
 
 There are two approaches to avoid such troubles. One is byte-oriented
-approach and the other is character-oriented approach.
+and the other is character-oriented.
 
 Byte-oriented approach avoids mojibake by inserting escape character \
 before each special character to indicate it is not special in that case.

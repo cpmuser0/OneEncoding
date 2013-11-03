@@ -33,7 +33,7 @@ sub override_by_encoding_funcs
 
     no strict 'refs';
 
-    *{"${caller}::open"} = sub
+    *{"${caller}::open"} = sub (*;$@)
     {
         my $file = $_[1];
         $file =~ s/^(\s*[<>]\s*)//;
@@ -54,19 +54,19 @@ sub override_by_encoding_funcs
         }
     };
 
-    *{"${caller}::stat"} = sub
+    *{"${caller}::stat"} = sub (;*)
     {
         my $file = encode( $encoding, $_[0] );
         CORE::stat( $file );
     };
 
-    *{"${caller}::rename"} = sub
+    *{"${caller}::rename"} = sub ($$)
     {
         my @file = map{ encode( $encoding, $_ ) } @_;
         CORE::rename( $file[0], $file[1] );
     };
 
-    *{"${caller}::unlink"} = sub
+    *{"${caller}::unlink"} = sub (@)
     {
         my $file = encode( $encoding, $_[0] );
         CORE::unlink( $file );
