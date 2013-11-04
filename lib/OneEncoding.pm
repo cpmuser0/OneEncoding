@@ -135,11 +135,11 @@ OneEncoding - to make life easier in one-encoding environment
 
 =head1 DESCRIPTION
 
-Note that this text is CP932-encoded.
+Note that this text is UTF8-encoded.
 
 Suppose you are using Japanese on Windows with default encoding CP932
-and you print a double-quoted Kanji literal such as "�\��".
-Then You get a broken literal "���" displayed on console.
+and you print a double-quoted Kanji literal such as "能力"
+Then You get a broken literal "迫ﾍ" displayed on console.
 This is a situation called mojibake in Japanese.
 
 OneEncoding module is to avoid mojibake and other charater code related
