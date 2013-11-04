@@ -8,7 +8,7 @@ use Filter::Util::Call;
 
 our $VERSION    = '0.03';
 
-my $init_encoding;
+our $init_encoding;
 my $sjis_escape_sub;
 my $one_encoding_sub;
 
@@ -138,8 +138,8 @@ OneEncoding - to make life easier in one-encoding environment
 Note that this text is CP932-encoded.
 
 Suppose you are using Japanese on Windows with default encoding CP932
-and you print a double-quoted Kanji literal such as "”\—Í".
-Then You get a broken literal "”—Í" displayed on console.
+and you print a double-quoted Kanji literal such as "ï¿½\ï¿½ï¿½".
+Then You get a broken literal "ï¿½ï¿½ï¿½" displayed on console.
 This is a situation called mojibake in Japanese.
 
 OneEncoding module is to avoid mojibake and other charater code related
