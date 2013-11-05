@@ -32,9 +32,11 @@ sub import
     if ( $encoding eq "sjis_escape" )
     {
         $sjis_escape_sub  //= filter_only(
-
-                quotelike => sub
-                {
+                all => sub {
+                        # L\ => L\\
+                        s/([\x81-\x9f]|[\xe0-\xef]])( \\ )/$1\\$2/gx;
+                },
+                quotelike => sub {
                     if ( !/^(<<)?'/ ) # if it does not begin with '
                     {
                         # print "DEBUG:$_:\n";
