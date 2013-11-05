@@ -40,9 +40,6 @@ sub import
                     if ( !/^(<<)?'/ ) # if it does not begin with '
                     {
                         # print "DEBUG:$_:\n";
-                        # L\ => L\\
-                        s/([\x81-\x9f]|[\xe0-\xef]])( \\ )/$1\\$2/gx;
-
                         # LR => L\R
                         s/([\x81-\x9f]|[\xe0-\xef]])([ \@ \` \[ \] \^ \{ \| \} ])/$1\\$2/gx;
                     }
