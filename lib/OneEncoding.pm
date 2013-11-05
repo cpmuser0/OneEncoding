@@ -8,7 +8,8 @@ use Filter::Util::Call;
 
 our $VERSION    = '0.03';
 
-our $init_encoding;
+my $init_encoding;
+sub get_init_encoding { $init_encoding }
 my $sjis_escape_sub;
 my $one_encoding_sub;
 
