@@ -8,33 +8,29 @@ use Encode;
 our $VERSION = '0.02';
 my $encoding;
 
-sub import
+sub decode_vars
 {
-    my $class = shift;
-    $encoding = shift;
-    $encoding or die "Usage: use OneEncoding::CORE 'ENCODING';";
-    my $caller = caller;
+    my $enc = shift;
 
-    # print "DEBUG: OneEncoding::CORE import $caller\n";
+    @ARGV = map{ $enc->decode( $_ ) } @ARGV;
 
-    decode_argv() if $caller eq 'main';
-    override_by_encoding_funcs();
-}
+    Internals::SvREADONLY( $0, 0 );
+    $0 = $enc->decode( $0 );
+    Internals::SvREADONLY( $0, 1 );
 
-sub decode_argv
-{
-    @ARGV = map{ decode( $encoding, $_ ) } @ARGV;
     1;
 }
 
 sub override_by_encoding_funcs
 {
-    my $caller = caller(1);
+    my $caller = shift;
+    my $encoding = shift;
+    my $enc = shift;
 
     no strict 'refs';
+    no warnings;
 
-    *{"${caller}::open"} = sub (*;$@)
-    {
+    *{"${caller}::open"} = sub (*;$@) {
         my $file = $_[1];
         $file =~ s/^(\s*[<>]\s*)//;
         my $io = $1 || '<';
@@ -43,46 +39,42 @@ sub override_by_encoding_funcs
         if ( !defined( $_[0] ) )
         {
             # for the newer style: open( my $csv, ... );
-            CORE::open( $_[0], $io_encoding, encode( $encoding, $file ) );
+            CORE::open( $_[0], $io_encoding, $enc->encode( $file ) );
         }
         else
         {
             # for the older style: open( CSV, ... );
             my $sym;
-            CORE::open( $sym, $io_encoding, encode( $encoding, $file ) );
+            CORE::open( $sym, $io_encoding, $enc->encode( $file ) );
             *{"${caller}::$_[0]"} = $sym;
         }
     };
 
-    *{"${caller}::stat"} = sub (;*)
-    {
-        my $file = encode( $encoding, $_[0] );
+    *{"${caller}::stat"} = sub (;*) {
+        my $file = $enc->encode( $_[0] );
         CORE::stat( $file );
     };
 
-    *{"${caller}::rename"} = sub ($$)
-    {
-        my @file = map{ encode( $encoding, $_ ) } @_;
+    *{"${caller}::rename"} = sub ($$) {
+        my @file = map{ $enc->encode( $_ ) } @_;
         CORE::rename( $file[0], $file[1] );
     };
 
-    *{"${caller}::unlink"} = sub (@)
-    {
-        my $file = encode( $encoding, $_[0] );
+    *{"${caller}::unlink"} = sub (@) {
+        my $file = $enc->encode( $_[0] );
         CORE::unlink( $file );
     };
 
-    *{"${caller}::system"} = sub
-    {
-        my $cmd = encode( $encoding, $_[0] );
+    *{"${caller}::system"} = sub {
+        my $cmd = $enc->encode( $_[0] );
         CORE::system( $cmd );
     };
 
-    *{"${caller}::glob"} = sub
-    {
-        my $expr = encode( $encoding, $_[0] );
-        map{ decode( $encoding, $_ ) } CORE::glob( $expr );
+    *{"${caller}::glob"} = sub {
+        my $expr = $enc->encode( $_[0] );
+        map{ $enc->decode( $_ ) } CORE::glob( $expr );
     };
+
     1;
 }
 

@@ -4,29 +4,55 @@ use 5.010001;
 use strict;
 use warnings;
 use Encode;
-use Tie::Hash;
-our $VERSION = '0.01';
-our @ISA = qw( Tie::StdHash );
+our $VERSION = '0.02';
 
-my $genv ||= \%ENV;
-my $encoding;
-
-sub import
+sub TIEHASH
 {
-    my $class = shift;
-    $encoding = shift;
+	my $class = shift;
+	# print "DEBUG: $class, @_\n";
+	bless [ @_ ], $class;
 }
 
 sub STORE
 {
     my ( $self, $key, $value ) = @_;
-    $genv->{ $key } = encode( $encoding, $value );
+    # print "DEBUG(STORE): key=$key\n";
+    $self->[0]->{ $key } = $self->[1]->encode( $value );
 }
 
 sub FETCH
 {
     my ( $self, $key ) = @_;
-    decode(  $encoding, $genv->{$key} );
+    # print "DEBUG(FETCH): key=$key\n";
+    my $value = $self->[0]->{$key};
+    defined $value ? $self->[1]->decode( $value ) : undef;
+}
+
+sub FIRSTKEY
+{
+    my ( $self, $key ) = @_;
+    # print "DEBUG(FETCH): key=$key\n";
+    my $env = $self->[0];
+    my $a = scalar keys %$env;
+    each %$env;
+}
+
+sub EXISTS
+{
+    my ( $self, $key ) = @_;
+    exists $self->[0]->{$key};
+}
+
+sub DELETE
+{
+    my ( $self, $key ) = @_;
+    delete $self->[0]->{$key};
+}
+
+sub CLEAR
+{
+    my ( $self, $key ) = @_;
+    %{ $self->[0] } = ();
 }
 
 1;
