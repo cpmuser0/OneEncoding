@@ -30,32 +30,46 @@ our @EXPORT = qw(
 
 use Subversion::Excel;
 
+#-------------------------------------------------------------------------------
+#   VBAモジュールのエクスポート用変換ルール
 my @ExportRules = (
     [   qr{^(trunk/\w+)}    => "trunk/export-book"  ],
 );
 
-my $VbaBrowserRepo = $ENV{VBA_BROWSER_REPO} || 'D:\svn\repos\VbaBrowserRepo';
-my $VbaBrowserTemp = $ENV{VBA_BROWSER_TEMP} || 'D:\svn\temp';
+=comment
 
-mkdir $VbaBrowserTemp, 0777 unless -e $VbaBrowserTemp;
--e $VbaBrowserTemp or die;
+    以下では、変数名を次のように使い分ける。
 
-my $_DIR    = 0;
-my $_REP    = 1;
-my $_REV    = 2;
-my $_TXN    = 3;
-my $_URL    = 4;
+    $book_path      trunk/env/tool.xlsm
+    $export_path    trunk/book-export/tool-xlsm （上記ルール適用後 .xlsm => -xlsm）
+    $export_url     file://localhost/D:/svn/repos/sample/trunk/env/tool-xlsm
+                                                （リポジトリを付けて URL に変換）
+
+=cut
+#--------------------------------------------------------------------------------
+
+my $SvnTempDir = $ENV{SVN_TEMP_DIR} || 'D:\svn\temp';
+
+mkdir $SvnTempDir, 0777 unless -e $SvnTempDir;
+-e $SvnTempDir or die;
+
+#  属性の位置         属性の意味                        値の例
+#-------------------------------------------------------------------------------
+my $_DIR    = 0;    # リポジトリ外の作業用のフォルダ    D:\svn\temp\1234  （1234は PID）
+my $_REP    = 1;    # リポジトリフォルダ                D:\svn\repos\sample
+my $_REV    = 2;    # リビジョン                        65
+my $_TXN    = 3;    # 
+my $_URL    = 4;    # リポジトリURL         file://localhost/d:/svn/repos/sample
 
 #-------------------------------------------------------------------------------
-#   constructor
+#   コンストラクタ
 #-------------------------------------------------------------------------------
 sub new
 {
     my $class       = shift;
 
-    # my $pid = $$;
-    my $pid = 8888;
-    my $temp_dir    = "$VbaBrowserTemp\\$pid";
+    my $pid = $$;
+    my $temp_dir    = "$SvnTempDir\\$pid";
 
     _remove_reccursively_forced( $temp_dir );
     mkdir $temp_dir, 0777;
@@ -69,7 +83,7 @@ sub new
 }
 
 #-------------------------------------------------------------------------------
-#   destructor
+#   デストラクタ
 #-------------------------------------------------------------------------------
 sub DESTROY
 {
@@ -80,7 +94,7 @@ sub DESTROY
 }
 
 #-------------------------------------------------------------------------------
-#   update
+#   post-commit-hook の更新制御
 #-------------------------------------------------------------------------------
 sub update
 {
@@ -104,6 +118,7 @@ sub update
         foreach my $rule ( @ExportRules )
         {
             next unless $export_path =~ s/$rule->[0]/$rule->[1]/;
+            $export_path =~ s/\.(xlsm)$/-$1/i;
             $is_export_target = 1;
             last;
         }
@@ -119,7 +134,7 @@ sub update
 }
 
 #-------------------------------------------------------------------------------
-#   update_by_book
+#   Excelマクロブックによる更新制御
 #-------------------------------------------------------------------------------
 my $excel;
 sub update_by_book
@@ -138,7 +153,7 @@ sub update_by_book
     if ( $ope eq "D" )
     {
         # book_path が削除された場合
-        $self->repo_remove_dir( $book_path );
+        $self->repo_remove_dir( $export_path );
     }
     else
     {
@@ -147,28 +162,26 @@ sub update_by_book
 
         $self->repo_commit_dir( $book_path, $module_dir, $export_path );
     }
-
-    # over write or add
-
-
-    # commit
-    my @modules;
-
-    foreach my $module ( @modules )
-    {
-        print "Updating $module\n";
-    }
-}
-
-sub repo_remove_dir
-{
-    my $self = shift;
-    my ( $dir )  = @$self[ $_DIR ];
-    print "DEBUG(repo_remove_dir): @_\n";
 }
 
 #-------------------------------------------------------------------------------
-#   export_modules
+#   リポジトリ内の book-export フォルダの削除r
+#-------------------------------------------------------------------------------
+sub repo_remove_dir
+{
+    my $self = shift;
+    my ( $url )  = @$self[ $_URL ];
+    my ( $export_path ) = @_;
+    print "DEBUG(repo_remove_dir): @_\n";
+
+    my $cmd = qq(svn delete $url/$export_path -m "により削除");
+    print "$cmd\n";
+    my $ret = system( $cmd );
+    print "delete ret=$ret\n";
+}
+
+#-------------------------------------------------------------------------------
+#   Excelマクロブックの SVN-EXPORT およびモジュールの VBE-EXPORT
 #-------------------------------------------------------------------------------
 sub export_modules
 {
@@ -192,7 +205,7 @@ sub export_modules
 }
 
 #-------------------------------------------------------------------------------
-#   repo_commit_dir
+#   ワーキングコピーの用意とコミット
 #-------------------------------------------------------------------------------
 sub repo_commit_dir
 {
@@ -202,26 +215,30 @@ sub repo_commit_dir
 
     print "DEBUG(repo_commit_dir): @_\n";
 
+    # # book-export フォルダのチェックアウトを試みる。
     my $work_dir = "$dir\\work_dir";
     mkdir $work_dir, 0777;
-
-    $export_path =~ s/\.(xlsm)$/-$1/i;
     my $exoort_url = "$url/$export_path";
-
     my $cmd = "svn checkout $exoort_url $work_dir";
     print "$cmd\n";
     my $ret = system( $cmd );
     print "checkout ret=$ret\n";
     if ( $ret == 0 )
     {
+        # book-export フォルダが既存（チェックアウト成功）の場合は、
+        # ワーキングコピーを操作してコミットする。
         _reflect_module_dir_to_work_dir( $module_dir, $work_dir );
+        # sleep 1;
         my $commit_cmd = qq(svn commit $work_dir -m "post-commit-hook により改訂" );
         my $commit_ret = system( $commit_cmd );
         print "commit_ret=$commit_ret\n";
     }
     else
     {
+        # book-export フォルダがない（チェックアウト失敗の）場合は、
+        # 作成してインポートする。
         $self->repo_make_dir( $export_path );
+        # sleep 1;
         my $import_cmd = qq(svn import $module_dir $exoort_url -m "post-commit-hook によりインポート");
         print "$import_cmd\n";
         my $import_ret = system( $import_cmd );
@@ -230,7 +247,7 @@ sub repo_commit_dir
 }
 
 #-------------------------------------------------------------------------------
-#   repo_make_dir
+#   リポジトリ内の book-export フォルダ作成
 #-------------------------------------------------------------------------------
 sub repo_make_dir
 {
@@ -252,7 +269,7 @@ sub repo_make_dir
 }
 
 #-------------------------------------------------------------------------------
-#   _reflect_module_dir_to_work_dir
+#   ワーキングコピーの用意
 #-------------------------------------------------------------------------------
 sub _reflect_module_dir_to_work_dir
 {
@@ -293,7 +310,13 @@ sub _reflect_module_dir_to_work_dir
 
     foreach ( sort keys %entry )
     {
-        print "have to delete $_\n";
+        print "$_\n";
+        my $file = ( split( '\\\\', $_ ) )[-1];
+        my $to_path = "$to\\$file";
+        my $cmd = "svn delete $to_path";
+        print "$cmd\n";
+        my $ret = system( $cmd );
+        print "delete ret=$ret\n";
     }
 }
 
