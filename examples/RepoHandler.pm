@@ -113,17 +113,8 @@ sub update
         next unless $line =~ /^ (\w) \s+ (.+\.xlsm) $ /x;
 
         my ( $ope, $book_path ) = ( $1, $2 );
-        my $export_path = $book_path;
-        my $is_export_target;
-        foreach my $rule ( @ExportRules )
-        {
-            next unless $export_path =~ s/$rule->[0]/$rule->[1]/;
-            $export_path =~ s/\.(xlsm)$/-$1/i;
-            $is_export_target = 1;
-            last;
-        }
-
-        next unless $is_export_target;
+        my $export_path = $self->get_export_path( $book_path );
+        next unless $export_path;
 
         print "DEBUG: ( $ope, $book_path, $export_path )\n";
 
@@ -131,6 +122,24 @@ sub update
     }
 
     close $svn;
+}
+
+#-------------------------------------------------------------------------------
+#   エクスポート用パスを取得する
+#-------------------------------------------------------------------------------
+sub get_export_path
+{
+    my $self = shift;
+    my $export_path = shift;
+    # print "DEBUG(get_export_path): export_path=$export_path\n";
+    foreach my $rule ( @ExportRules )
+    {
+        next unless $export_path =~ s/$rule->[0]/$rule->[1]/;
+        $export_path =~ s/\.(xlsm)$/-$1/i;
+        return $export_path;
+    }
+
+    undef;
 }
 
 #-------------------------------------------------------------------------------
@@ -191,7 +200,8 @@ sub export_modules
 
     print "DEBUG(export_modules): @_\n";
 
-    my $cmd = "svn export -r $rev $url/$book_path $dir";
+    my $rev_arg = $rev ? "-r $rev" : "";
+    my $cmd = "svn export $rev_arg $url/$book_path $dir";
     print "$cmd\n";
     my $ret = system( $cmd );
     print "export ret=$ret\n";
